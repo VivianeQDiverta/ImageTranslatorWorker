@@ -13,7 +13,8 @@ router.post('/detect-text', async (req) => {
 				headers: {
 					'Content-Type': 'application/json',
 				},
-			}
+				status: 400,
+			},
 		);
 	}
 
@@ -40,6 +41,35 @@ router.post('/detect-text', async (req) => {
 		}),
 	});
 	const data = await response.json();
+
+	if (data.error) {
+		return new Response(
+			JSON.stringify({
+				message: data.error.message,
+			}),
+			{
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				status: data.error.code,
+			}
+		);
+	}
+
+	// if no text is detected
+	if (!data.responses[0].textAnnotations) {
+		return new Response(
+			JSON.stringify({
+				message: 'No text detected',
+			}),
+			{
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				status: 400,
+			}
+		);
+	}
 
 	return new Response(
 		JSON.stringify({
