@@ -9,7 +9,8 @@
 		"test": "vitest"
 	},
 	"dependencies": {
-		"itty-router": "^2.6.1"
+		"itty-router": "^2.6.1",
+		"js-base64": "^3.7.5"
 	},
 	"devDependencies": {
 		"vitest": "^0.31.0",
