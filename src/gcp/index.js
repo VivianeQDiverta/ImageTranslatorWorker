@@ -14,7 +14,7 @@ router.post('/detect-text', async (req) => {
 					'Content-Type': 'application/json',
 				},
 				status: 400,
-			},
+			}
 		);
 	}
 
@@ -73,7 +73,7 @@ router.post('/detect-text', async (req) => {
 
 	return new Response(
 		JSON.stringify({
-			data,
+			textAnnotations: data.responses[0].textAnnotations,
 		}),
 		{
 			headers: {
@@ -83,11 +83,37 @@ router.post('/detect-text', async (req) => {
 	);
 });
 
-router.post('/translate-text', (req) => {
-	// https://cloud.google.com/translate/docs/reference/rest/v2/translate
+router.post('/translate-text', async (req) => {
+	// TODO: some validations and error handling
+	const { textAnnotations, targetLang } = await req.json();
+	const translatedAnnotations = await Promise.all(
+		textAnnotations.map(async (annotation) => {
+			const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${req.token}`,
+					'x-goog-user-project': 'team-interns-2023',
+				},
+				body: JSON.stringify({
+					q: annotation.description,
+					source: annotation.locale,
+					target: targetLang,
+					format: 'text',
+				})
+			});
+			const data = await response.json();
+
+			return {
+				...annotation,
+				translated: data.data.translations[0].translatedText,				
+			}
+		})
+	);
+
 	return new Response(
 		JSON.stringify({
-			message: 'translate-text',
+			translatedAnnotations,
 		}),
 		{
 			headers: {
