@@ -3,7 +3,8 @@ import { Router } from 'itty-router';
 export const router = Router({ base: '/gcp' });
 
 router.post('/detect-text', async (req) => {
-	const { binaryImage } = await req.json();
+	const body = await req.text();
+	const { binaryImage } = body ? JSON.parse(decodeURIComponent(body)) : {};
 	if (!binaryImage) {
 		return new Response(
 			JSON.stringify({
@@ -13,7 +14,6 @@ router.post('/detect-text', async (req) => {
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				status: 400,
 			}
 		);
 	}
@@ -51,7 +51,6 @@ router.post('/detect-text', async (req) => {
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				status: data.error.code,
 			}
 		);
 	}
@@ -66,14 +65,14 @@ router.post('/detect-text', async (req) => {
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				status: 400,
 			}
 		);
 	}
 
+	// send result as single key string object for KurocoEdge to be able to capture it as a string
 	return new Response(
 		JSON.stringify({
-			textAnnotations: data.responses[0].textAnnotations,
+			textAnnotations: JSON.stringify(data.responses[0].textAnnotations),
 		}),
 		{
 			headers: {
@@ -85,7 +84,8 @@ router.post('/detect-text', async (req) => {
 
 router.post('/translate-text', async (req) => {
 	// TODO: some validations and error handling
-	const { textAnnotations, targetLang } = await req.json();
+	const body = await req.text();
+	const { textAnnotations, targetLang } = JSON.parse(decodeURIComponent(body));
 	const translatedAnnotations = await Promise.all(
 		textAnnotations.map(async (annotation) => {
 			const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
@@ -100,20 +100,21 @@ router.post('/translate-text', async (req) => {
 					source: annotation.locale,
 					target: targetLang,
 					format: 'text',
-				})
+				}),
 			});
 			const data = await response.json();
 
 			return {
 				...annotation,
-				translated: data.data.translations[0].translatedText,				
-			}
+				translated: data.data.translations[0].translatedText,
+			};
 		})
 	);
 
+	// send result as single key string object for KurocoEdge to be able to capture it as a string
 	return new Response(
 		JSON.stringify({
-			translatedAnnotations,
+			translatedAnnotations: JSON.stringify(translatedAnnotations),
 		}),
 		{
 			headers: {
