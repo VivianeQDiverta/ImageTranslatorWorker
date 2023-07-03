@@ -56,7 +56,7 @@ router.post('/detect-text', async (req) => {
 	}
 
 	// if no text is detected
-	if (!data.responses[0].textAnnotations) {
+	if (!data.responses[0].fullTextAnnotation) {
 		return new Response(
 			JSON.stringify({
 				message: 'No text detected',
@@ -69,10 +69,25 @@ router.post('/detect-text', async (req) => {
 		);
 	}
 
+	const annotations = data.responses[0].fullTextAnnotation.pages[0].blocks.reduce((acc, block) => {
+		// return text annotation and vertices for each paragraph
+		return [
+			...acc,
+			...block.paragraphs.map((paragraph) => {
+				return {
+					vertices: paragraph.boundingBox.vertices,
+					text: paragraph.words.reduce((acc, word) => {
+						return acc + word.symbols.map((symbol) => symbol.text).join('');
+					}, ''),
+				};
+			}),
+		];
+	}, []);
+
 	// send result as single key string object for KurocoEdge to be able to capture it as a string
 	return new Response(
 		JSON.stringify({
-			textAnnotations: JSON.stringify(data.responses[0].textAnnotations.slice(1)),
+			annotations: JSON.stringify(annotations),
 		}),
 		{
 			headers: {
@@ -85,9 +100,9 @@ router.post('/detect-text', async (req) => {
 router.post('/translate-text', async (req) => {
 	// TODO: some validations and error handling
 	const body = await req.text();
-	const { textAnnotations, targetLang } = JSON.parse(decodeURIComponent(body));
+	const { annotations, targetLang } = JSON.parse(decodeURIComponent(body));
 	const translatedAnnotations = await Promise.all(
-		textAnnotations.map(async (annotation) => {
+		annotations.map(async (annotation) => {
 			const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
 				method: 'POST',
 				headers: {
@@ -96,8 +111,7 @@ router.post('/translate-text', async (req) => {
 					'x-goog-user-project': 'team-interns-2023',
 				},
 				body: JSON.stringify({
-					q: annotation.description,
-					source: annotation.locale,
+					q: annotation.text,
 					target: targetLang,
 					format: 'text',
 				}),

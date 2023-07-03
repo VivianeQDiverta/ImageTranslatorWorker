@@ -19,10 +19,10 @@ router.post('/generate-annotations', async (req) => {
 	}
 
 	const htmlAnnotations = translatedAnnotations.reduce((acc, annotation) => {
-		const { x, y } = annotation.boundingPoly.vertices[0];
-		const width = annotation.boundingPoly.vertices[2].x - x;
-		const height = annotation.boundingPoly.vertices[2].y - y;
-		const style = `position: absolute; left: ${x}px; top: ${y}px; width: ${width}px; height: ${height}px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-family: sans-serif; font-weight: bold; color: black;`;
+		const { x, y } = annotation.vertices[0];
+		const width = annotation.vertices[2].x - x;
+		const height = annotation.vertices[2].y - y;
+		const style = `position: absolute; left: ${x}px; top: ${y}px; width: ${width}px; height: ${height}px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-family: sans-serif; font-weight: bold; color: black; background: white;`;
 		return `${acc}<div style="${style}">${annotation.translated}</div>`;
 	}, '');
 
