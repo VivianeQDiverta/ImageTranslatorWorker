@@ -2,6 +2,33 @@ import { Router } from 'itty-router';
 
 export const router = Router({ base: '/gcp' });
 
+router.get('/languages', async (req) => {
+	const response = await fetch('https://translation.googleapis.com/language/translate/v2/languages?target=en', {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${req.token}`,
+			'x-goog-user-project': 'team-interns-2023',
+		},
+	});
+	const data = await response.json();
+
+	const options = data.data.languages.reduce((acc, language) => {
+		return `${acc}<option value="${language.language}">${language.name}</option>`;
+	}, '');
+
+	return new Response(
+		JSON.stringify({
+			languages: options,
+		}),
+		{
+			headers: {
+				'Content-Type': 'application/json',
+			},
+		}
+	);
+});
+
 router.post('/detect-text', async (req) => {
 	const body = await req.text();
 	const { binaryImage } = body ? JSON.parse(decodeURIComponent(body)) : {};
