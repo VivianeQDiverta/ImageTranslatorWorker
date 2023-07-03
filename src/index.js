@@ -1,11 +1,13 @@
 import { Router } from 'itty-router';
 import { router as gcpRouter } from './gcp';
+import { router as imgRouter } from './img';
 import gcpAuth from './middlewares/gcpAuth';
 
 // Create a new router
 const router = Router({ base: '/'});
 
 router.all('/gcp/*', gcpAuth, gcpRouter.handle);
+router.all('/img/*', imgRouter.handle);
 
 /*
 This is the last route we define, it will match anything that hasn't hit a route we've defined
