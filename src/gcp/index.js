@@ -37,7 +37,6 @@ router.post('/detect-text', async (req) => {
 			JSON.stringify({
 				message: 'No image provided',
 				annotations: '[]',
-				sourceLang: '',
 			}),
 			{
 				headers: {
@@ -77,7 +76,6 @@ router.post('/detect-text', async (req) => {
 			JSON.stringify({
 				message: 'No text detected',
 				annotations: '[]',
-				sourceLang: '',
 			}),
 			{
 				headers: {
@@ -87,7 +85,8 @@ router.post('/detect-text', async (req) => {
 		);
 	}
 
-	const annotations = data.responses[0].fullTextAnnotation.pages[0].blocks.reduce((acc, block) => {
+	const blocks = data.responses[0].fullTextAnnotation.pages[0].blocks;
+	const annotations = blocks.reduce((acc, block) => {
 		// return text annotation and vertices for each paragraph
 		return [
 			...acc,
@@ -107,7 +106,6 @@ router.post('/detect-text', async (req) => {
 		JSON.stringify({
 			message: 'Text detected',
 			annotations: JSON.stringify(annotations),
-			sourceLang: data.responses[0].fullTextAnnotation.pages[0].property.detectedLanguages[0].languageCode,
 		}),
 		{
 			headers: {
@@ -119,26 +117,12 @@ router.post('/detect-text', async (req) => {
 
 router.post('/translate-text', async (req) => {
 	const body = await req.text();
-	const { annotations, targetLang, sourceLang } = JSON.parse(decodeURIComponent(body));
+	const { annotations, targetLang } = JSON.parse(decodeURIComponent(body));
 
 	if (!annotations || !targetLang) {
 		return new Response(
 			JSON.stringify({
 				message: 'No annotations or target language provided',
-				translatedAnnotations: '[]',
-			}),
-			{
-				headers: {
-					'Content-Type': 'application/json',
-				},
-			}
-		);
-	}
-
-	if (sourceLang === targetLang) {
-		return new Response(
-			JSON.stringify({
-				message: 'Source and target languages are the same',
 				translatedAnnotations: '[]',
 			}),
 			{
