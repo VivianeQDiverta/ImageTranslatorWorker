@@ -72,7 +72,7 @@ router.post('/detect-text', async (req) => {
 	// send result as single key string object for KurocoEdge to be able to capture it as a string
 	return new Response(
 		JSON.stringify({
-			textAnnotations: JSON.stringify(data.responses[0].textAnnotations),
+			textAnnotations: JSON.stringify(data.responses[0].textAnnotations.slice(1)),
 		}),
 		{
 			headers: {
