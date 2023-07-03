@@ -9,6 +9,7 @@ router.post('/generate-annotations', async (req) => {
 		return new Response(
 			JSON.stringify({
 				message: 'No annotations provided',
+				htmlAnnotations: '',
 			}),
 			{
 				headers: {
@@ -28,6 +29,7 @@ router.post('/generate-annotations', async (req) => {
 	// send result as single key string object for KurocoEdge to be able to capture it as a string
 	return new Response(
 		JSON.stringify({
+			message: 'Annotations generated',
 			htmlAnnotations: htmlAnnotations,
 		}),
 		{
