@@ -86,20 +86,25 @@ router.post('/detect-text', async (req) => {
 	}
 
 	const blocks = data.responses[0].fullTextAnnotation.pages[0].blocks;
-	const annotations = blocks.reduce((acc, block) => {
-		// return text annotation and vertices for each paragraph
-		return [
-			...acc,
-			...block.paragraphs.map((paragraph) => {
-				return {
-					vertices: paragraph.boundingBox.vertices,
-					text: paragraph.words.reduce((acc, word) => {
-						return acc + word.symbols.map((symbol) => symbol.text).join('');
-					}, ''),
-				};
-			}),
-		];
-	}, []);
+	const annotations = blocks
+		.reduce((acc, block) => {
+			// return text annotation and vertices for each paragraph
+			return [
+				...acc,
+				...block.paragraphs.map((paragraph) => {
+					return {
+						vertices: paragraph.boundingBox.vertices,
+						text: paragraph.words.reduce((acc, word) => {
+							return acc + word.symbols.map((symbol) => symbol.text).join('');
+						}, ''),
+					};
+				}),
+			];
+		}, [])
+		.filter((annotation) => {
+			// filter out annotations that contain only numbers or special characters
+			return !annotation.text.match(/^[0-9!↓↑@#$%^&*()_+\-≠≡=\[\]{};':"\\|,.<>\/?]*$/);
+		});
 
 	// send result as single key string object for KurocoEdge to be able to capture it as a string
 	return new Response(
@@ -134,32 +139,27 @@ router.post('/translate-text', async (req) => {
 	}
 
 	const translatedAnnotations = await Promise.all(
-		annotations
-			.filter((annotation) => {
-				// if annotation contains only numbers or special characters, don't translate
-				return !annotation.text.match(/^[0-9!↓↑@#$%^&*()_+\-≠=\[\]{};':"\\|,.<>\/?]*$/);
-			})
-			.map(async (annotation) => {
-				const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `Bearer ${req.token}`,
-						'x-goog-user-project': 'team-interns-2023',
-					},
-					body: JSON.stringify({
-						q: annotation.text,
-						target: targetLang,
-						format: 'text',
-					}),
-				});
-				const data = await response.json();
+		annotations.map(async (annotation) => {
+			const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${req.token}`,
+					'x-goog-user-project': 'team-interns-2023',
+				},
+				body: JSON.stringify({
+					q: annotation.text,
+					target: targetLang,
+					format: 'text',
+				}),
+			});
+			const data = await response.json();
 
-				return {
-					...annotation,
-					translated: data.data.translations[0].translatedText,
-				};
-			})
+			return {
+				...annotation,
+				translated: data.data.translations[0].translatedText,
+			};
+		})
 	);
 
 	// send result as single key string object for KurocoEdge to be able to capture it as a string
