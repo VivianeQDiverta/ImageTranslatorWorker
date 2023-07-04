@@ -134,27 +134,32 @@ router.post('/translate-text', async (req) => {
 	}
 
 	const translatedAnnotations = await Promise.all(
-		annotations.map(async (annotation) => {
-			const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${req.token}`,
-					'x-goog-user-project': 'team-interns-2023',
-				},
-				body: JSON.stringify({
-					q: annotation.text,
-					target: targetLang,
-					format: 'text',
-				}),
-			});
-			const data = await response.json();
+		annotations
+			.filter((annotation) => {
+				// if annotation contains only numbers or special characters, don't translate
+				return !annotation.text.match(/^[0-9!↓↑@#$%^&*()_+\-≠=\[\]{};':"\\|,.<>\/?]*$/);
+			})
+			.map(async (annotation) => {
+				const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${req.token}`,
+						'x-goog-user-project': 'team-interns-2023',
+					},
+					body: JSON.stringify({
+						q: annotation.text,
+						target: targetLang,
+						format: 'text',
+					}),
+				});
+				const data = await response.json();
 
-			return {
-				...annotation,
-				translated: data.data.translations[0].translatedText,
-			};
-		})
+				return {
+					...annotation,
+					translated: data.data.translations[0].translatedText,
+				};
+			})
 	);
 
 	// send result as single key string object for KurocoEdge to be able to capture it as a string
