@@ -26,11 +26,13 @@ router.post('/generate-annotations', async (req) => {
 		return `${acc}<div style="${style}">${annotation.translated}</div>`;
 	}, '');
 
+	const wrapppedHtmlAnnotations = `<div id="annotationsContainer">${htmlAnnotations}</div>`;
+
 	// send result as single key string object for KurocoEdge to be able to capture it as a string
 	return new Response(
 		JSON.stringify({
 			message: 'Annotations generated',
-			htmlAnnotations: htmlAnnotations,
+			htmlAnnotations: wrapppedHtmlAnnotations,
 		}),
 		{
 			headers: {
