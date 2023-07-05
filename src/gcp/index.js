@@ -125,7 +125,7 @@ router.post('/detect-text', async (req) => {
 		}, [])
 		.filter((annotation) => {
 			// filter out annotations that contain only numbers or special characters
-			return !annotation.text.match(/^[0-9!↓↑@#$%^&*()_+\-≠≡=\[\]{};':"\\|,.<>\/?]*$/);
+			return !annotation.text.match(/^[0-9!↓↑@#$%^&*()_+\-≠≡=\[\]{};':"\\|,.<>\/? ]*$/);
 		});
 
 	// send result as single key string object for KurocoEdge to be able to capture it as a string
