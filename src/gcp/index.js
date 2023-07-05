@@ -37,6 +37,7 @@ router.post('/detect-text', async (req) => {
 			JSON.stringify({
 				message: 'No image provided',
 				annotations: '[]',
+				primarySourceLang: '',
 			}),
 			{
 				headers: {
@@ -76,6 +77,7 @@ router.post('/detect-text', async (req) => {
 			JSON.stringify({
 				message: 'No text detected',
 				annotations: '[]',
+				primarySourceLang: '',
 			}),
 			{
 				headers: {
@@ -131,6 +133,7 @@ router.post('/detect-text', async (req) => {
 		JSON.stringify({
 			message: 'Text detected',
 			annotations: JSON.stringify(annotations),
+			primarySourceLang: data.responses[0].fullTextAnnotation.pages[0].property.detectedLanguages[0].languageCode,
 		}),
 		{
 			headers: {
@@ -142,7 +145,7 @@ router.post('/detect-text', async (req) => {
 
 router.post('/translate-text', async (req) => {
 	const body = await req.text();
-	const { annotations, targetLang } = JSON.parse(decodeURIComponent(body));
+	const { annotations, targetLang, primarySourceLang } = JSON.parse(decodeURIComponent(body));
 
 	if (!annotations || !targetLang) {
 		return new Response(
@@ -170,6 +173,7 @@ router.post('/translate-text', async (req) => {
 				body: JSON.stringify({
 					q: annotation.text,
 					target: targetLang,
+					source: primarySourceLang,
 					format: 'text',
 				}),
 			});
