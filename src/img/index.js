@@ -20,9 +20,11 @@ router.post('/generate-annotations', async (req) => {
 	}
 
 	const htmlAnnotations = translatedAnnotations.reduce((acc, annotation) => {
+		const numberOfLines = annotation.translated.match(/\n/g)?.length + 1 || 1;
+		annotation.translated = annotation.translated.replace(/\n/g, '<br>');
 		const { x, y } = annotation.vertices[0];
-		const fontSize = annotation.vertices[2].y - y;
-		const style = `position: absolute; left: ${x}px; top: ${y}px; font-size: ${fontSize}px; background: white; padding: 0.3em;`;
+		const fontSize = (annotation.vertices[2].y - y) / numberOfLines;
+		const style = `position: absolute; left: ${x}px; top: ${y}px; background: white; font-size: ${fontSize}px; width: max-content;`;
 		return `${acc}<div style="${style}">${annotation.translated}</div>`;
 	}, '');
 

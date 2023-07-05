@@ -94,8 +94,28 @@ router.post('/detect-text', async (req) => {
 				...block.paragraphs.map((paragraph) => {
 					return {
 						vertices: paragraph.boundingBox.vertices,
-						text: paragraph.words.reduce((acc, word) => {
-							return acc + word.symbols.map((symbol) => symbol.text).join('');
+						text: paragraph.words.reduce((paragraphAcc, word) => {
+							return (
+								paragraphAcc +
+								word.symbols.reduce((wordAcc, symbol) => {
+									// join symbols with detected break
+									const detectedBreak = symbol.property?.detectedBreak;
+									let joiner = '';
+									if (detectedBreak) {
+										switch (detectedBreak.type) {
+											case 'EOL_SURE_SPACE' || 'LINE_BREAK':
+												joiner = '\n';
+												break;
+											case 'SPACE':
+												joiner = ' ';
+												break;
+											default:
+												joiner = '';
+										}
+									}
+									return wordAcc + symbol.text + joiner;
+								}, '')
+							);
 						}, ''),
 					};
 				}),
