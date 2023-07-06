@@ -161,6 +161,20 @@ router.post('/translate-text', async (req) => {
 		);
 	}
 
+	if (targetLang === primarySourceLang) {
+		return new Response(
+			JSON.stringify({
+				message: 'Target language is the same as primary source language',
+				translatedAnnotations: "[]",
+			}),
+			{
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			}
+		);
+	}
+
 	const translatedAnnotations = await Promise.all(
 		annotations.map(async (annotation) => {
 			const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
