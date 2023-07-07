@@ -165,8 +165,6 @@ router.post('/translate-text', async (req) => {
 		annotations
 			.filter((annotation) => annotation.sourceLang != targetLang) // filter out annotations that are already in the target language
 			.map(async (annotation) => {
-				console.log(annotation.text);
-				console.log(annotation.sourceLang);
 				const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
 					method: 'POST',
 					headers: {
