@@ -37,7 +37,6 @@ router.post('/detect-text', async (req) => {
 			JSON.stringify({
 				message: 'No image provided',
 				annotations: '[]',
-				primarySourceLang: '',
 			}),
 			{
 				headers: {
@@ -77,7 +76,6 @@ router.post('/detect-text', async (req) => {
 			JSON.stringify({
 				message: 'No text detected',
 				annotations: '[]',
-				primarySourceLang: '',
 			}),
 			{
 				headers: {
@@ -88,6 +86,8 @@ router.post('/detect-text', async (req) => {
 	}
 
 	const blocks = data.responses[0].fullTextAnnotation.pages[0].blocks;
+	const page = data.responses[0].fullTextAnnotation.pages[0];
+	const primarySourceLang = page.property.detectedLanguages[0].languageCode; // not sure if the first is the one with the most confidence
 	const annotations = blocks
 		.reduce((acc, block) => {
 			// return text annotation and vertices for each paragraph
@@ -96,6 +96,7 @@ router.post('/detect-text', async (req) => {
 				...block.paragraphs.map((paragraph) => {
 					return {
 						vertices: paragraph.boundingBox.vertices,
+						sourceLang: paragraph.words[0].property?.detectedLanguages[0]?.languageCode || primarySourceLang, // takes the languages of the first word in the paragraph (should probably take the most common language)
 						text: paragraph.words.reduce((paragraphAcc, word) => {
 							return (
 								paragraphAcc +
@@ -133,7 +134,6 @@ router.post('/detect-text', async (req) => {
 		JSON.stringify({
 			message: 'Text detected',
 			annotations: JSON.stringify(annotations),
-			primarySourceLang: data.responses[0].fullTextAnnotation.pages[0].property.detectedLanguages[0].languageCode,
 		}),
 		{
 			headers: {
@@ -145,7 +145,7 @@ router.post('/detect-text', async (req) => {
 
 router.post('/translate-text', async (req) => {
 	const body = await req.text();
-	const { annotations, targetLang, primarySourceLang } = JSON.parse(decodeURIComponent(body));
+	const { annotations, targetLang } = JSON.parse(decodeURIComponent(body));
 
 	if (!annotations || !targetLang) {
 		return new Response(
@@ -161,11 +161,40 @@ router.post('/translate-text', async (req) => {
 		);
 	}
 
-	if (targetLang === primarySourceLang) {
+	const translatedAnnotations = await Promise.all(
+		annotations
+			.filter((annotation) => annotation.sourceLang != targetLang) // filter out annotations that are already in the target language
+			.map(async (annotation) => {
+				console.log(annotation.text);
+				console.log(annotation.sourceLang);
+				const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${req.token}`,
+						'x-goog-user-project': 'team-interns-2023',
+					},
+					body: JSON.stringify({
+						q: annotation.text,
+						target: targetLang,
+						source: annotation.sourceLang,
+						format: 'text',
+					}),
+				});
+				const data = await response.json();
+
+				return {
+					...annotation,
+					translated: data.data.translations[0].translatedText,
+				};
+			})
+	);
+
+	if (!translatedAnnotations.length) {
 		return new Response(
 			JSON.stringify({
-				message: 'Target language is the same as primary source language',
-				translatedAnnotations: "[]",
+				message: 'No annotations to translate',
+				translatedAnnotations: '[]',
 			}),
 			{
 				headers: {
@@ -174,31 +203,6 @@ router.post('/translate-text', async (req) => {
 			}
 		);
 	}
-
-	const translatedAnnotations = await Promise.all(
-		annotations.map(async (annotation) => {
-			const response = await fetch('https://translation.googleapis.com/language/translate/v2', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${req.token}`,
-					'x-goog-user-project': 'team-interns-2023',
-				},
-				body: JSON.stringify({
-					q: annotation.text,
-					target: targetLang,
-					source: primarySourceLang,
-					format: 'text',
-				}),
-			});
-			const data = await response.json();
-
-			return {
-				...annotation,
-				translated: data.data.translations[0].translatedText,
-			};
-		})
-	);
 
 	// send result as single key string object for KurocoEdge to be able to capture it as a string
 	return new Response(
