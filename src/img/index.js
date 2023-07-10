@@ -23,8 +23,9 @@ router.post('/generate-annotations', async (req) => {
 		const numberOfLines = annotation.translated.match(/\n/g)?.length + 1 || 1;
 		annotation.translated = annotation.translated.replace(/\n/g, '<br>');
 		const { x, y } = annotation.vertices[0];
-		const fontSize = (annotation.vertices[2].y - y) / numberOfLines;
-		const style = `position: absolute; left: ${x}px; top: ${y}px; background: white; font-size: ${fontSize}px; width: max-content;`;
+		const height = annotation.vertices[2].y - y;
+		const fontSize = numberOfLines > 1 ? (height / numberOfLines) * 0.8 : height;
+		const style = `text-align: start; position: absolute; left: ${x}px; top: ${y}px; background: white; font-size: ${fontSize}px; width: max-content;`;
 		return `${acc}<div style="${style}">${annotation.translated}</div>`;
 	}, '');
 
