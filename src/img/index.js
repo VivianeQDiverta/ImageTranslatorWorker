@@ -2,7 +2,7 @@ import { Router } from 'itty-router';
 
 export const router = Router({ base: '/img' });
 
-const computeAnnotationStyle = async (annotation) => {
+const computeAnnotationStyle = (annotation) => {
 	const translated = annotation.translated.replace(/\n/g, '<br>');
 	if (annotation.x && annotation.y && annotation.fontSize) {
 		return {
@@ -42,7 +42,8 @@ router.post('/generate-annotations', async (req) => {
 	}
 
 	const htmlAnnotations = translatedAnnotations.reduce((acc, annotation) => {
-		const { x, y, fontSize, translated } = computeAnnotationStyle(annotation);
+		const res = computeAnnotationStyle(annotation);
+		const { x, y, fontSize, translated } = res;
 		const style = `text-align: start; position: absolute; left: ${x}px; top: ${y}px; background: white; font-size: ${fontSize}px; width: max-content;`;
 		return `${acc}<div style="${style}">${translated}</div>`;
 	}, '');
